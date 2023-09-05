@@ -10,11 +10,12 @@ import DavidFoundation
 import Foundation
 import SwiftUI
 
+@MainActor
 class AppDelegate: NSObject, NSApplicationDelegate
 {
     @AppStorage("showInMenuBar") var showInMenuBar = false
     
-    @MainActor let appState = AppState()
+    let appState = AppState()
     
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool
     {

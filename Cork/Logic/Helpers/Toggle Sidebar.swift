@@ -8,7 +8,7 @@
 import AppKit
 import Foundation
 
-func toggleSidebar()
+@MainActor func toggleSidebar()
 {
     NSApp.keyWindow?.firstResponder?.tryToPerform(#selector(NSSplitViewController.toggleSidebar(_:)), with: nil)
 }

@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct InstallationInitialView: View
+struct InstallationInitialView: View, Sendable
 {
     @Environment(\.dismiss) var dismiss
     
@@ -122,46 +122,7 @@ struct InstallationInitialView: View
                 {
                     Button
                     {
-                        print("Would install package \(foundPackageSelection)")
-                        
-                        let topCasksSet = Set(topPackagesTracker.topCasks)
-                        
-                        var selectedTopPackageIsCask: Bool
-                        {
-                            // If this UUID is in the top casks tracker, it means it's a cask. Otherwise, it's a formula. So we test if the result of looking for the selected package in the cask tracker returns nothing; if it does return nothing, it's a formula (since the package is not in the cask tracker)
-                            if topCasksSet.filter({ $0.id == foundPackageSelection.first }).isEmpty
-                            {
-                                return false
-                            }
-                            else
-                            {
-                                return true
-                            }
-                        }
-                        
-                        do
-                        {
-                            let packageToInstall: BrewPackage = try getTopPackageFromUUID(requestedPackageUUID: foundPackageSelection.first!, isCask: selectedTopPackageIsCask, topPackageTracker: topPackagesTracker)
-                            
-                            installationProgressTracker.packagesBeingInstalled.append(PackageInProgressOfBeingInstalled(package: packageToInstall, installationStage: .ready, packageInstallationProgress: 0))
-                            
-                            print("Packages to install: \(installationProgressTracker.packagesBeingInstalled)")
-                            
-                            installationProgressTracker.packageBeingCurrentlyInstalled = packageToInstall.name
-                            
-                            packageInstallationProcessStep = .installing
-                        }
-                        catch let topPackageInstallationError
-                        {
-                            print("Failet while trying to get top package to install: \(topPackageInstallationError)")
-                            
-                            dismiss()
-                            
-                            appState.fatalAlertType = .topPackageArrayFilterCouldNotRetrieveAnyPackages
-                            appState.isShowingFatalError = true
-                            
-                        }
-                        
+                        installPackage()
                     } label: {
                         Text("add-package.install.action")
                     }
@@ -182,6 +143,48 @@ struct InstallationInitialView: View
         .onAppear
         {
             foundPackageSelection = .init()
+        }
+    }
+    
+    func installPackage() {
+        print("Would install package \(foundPackageSelection)")
+        
+        let topCasksSet = Set(topPackagesTracker.topCasks)
+        
+        var selectedTopPackageIsCask: Bool
+        {
+            // If this UUID is in the top casks tracker, it means it's a cask. Otherwise, it's a formula. So we test if the result of looking for the selected package in the cask tracker returns nothing; if it does return nothing, it's a formula (since the package is not in the cask tracker)
+            if topCasksSet.filter({ $0.id == foundPackageSelection.first }).isEmpty
+            {
+                return false
+            }
+            else
+            {
+                return true
+            }
+        }
+        
+        do
+        {
+            let packageToInstall: BrewPackage = try getTopPackageFromUUID(requestedPackageUUID: foundPackageSelection.first!, isCask: selectedTopPackageIsCask, topPackageTracker: topPackagesTracker)
+            
+            installationProgressTracker.packagesBeingInstalled.append(PackageInProgressOfBeingInstalled(package: packageToInstall, installationStage: .ready, packageInstallationProgress: 0))
+            
+            print("Packages to install: \(installationProgressTracker.packagesBeingInstalled)")
+            
+            installationProgressTracker.packageBeingCurrentlyInstalled = packageToInstall.name
+            
+            packageInstallationProcessStep = .installing
+        }
+        catch let topPackageInstallationError
+        {
+            print("Failet while trying to get top package to install: \(topPackageInstallationError)")
+            
+            dismiss()
+            
+            appState.fatalAlertType = .topPackageArrayFilterCouldNotRetrieveAnyPackages
+            appState.isShowingFatalError = true
+            
         }
     }
 }

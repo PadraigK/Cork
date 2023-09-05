@@ -9,6 +9,7 @@ import SwiftUI
 
 extension View
 {
+    @MainActor
     private func newWindowInternal(with title: String) -> NSWindow
     {
         let window = NSWindow(
@@ -23,7 +24,8 @@ extension View
         window.makeKeyAndOrderFront(nil)
         return window
     }
-
+    
+    @MainActor
     func openNewWindow(with title: String = "new Window")
     {
         newWindowInternal(with: title).contentView = NSHostingView(rootView: self)

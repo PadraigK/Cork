@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct CorkApp: App
+struct CorkApp: App, Sendable
 {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
@@ -67,51 +67,10 @@ struct CorkApp: App
 
                         Task(priority: .background)
                         {
-                            var updateResult = await shell(AppConstants.brewExecutablePath.absoluteString, ["update"])
-
-                            print("Update result: \(updateResult)")
-
-                            do
-                            {
-                                var newOutdatedPackages = try await getListOfUpgradeablePackages(brewData: brewData)
-
-                                print("Outdated packages checker output: \(newOutdatedPackages)")
-                                
-                                defer
-                                {
-                                    print("Will purge temporary update trackers")
-                                    
-                                    updateResult = .init(standardOutput: "", standardError: "")
-                                    newOutdatedPackages = .init()
-                                }
-                                
-                                if newOutdatedPackages.count == outdatedPackageTracker.outdatedPackages.count
-                                {
-                                    print("No new updates found")
-                                }
-                                else
-                                {
-                                    print("New updates found")
-                                    
-                                    /// Set this to `true` so the normal notification doesn't get sent
-                                    sendStandardUpdatesAvailableNotification = false
-
-                                    let differentPackages: [OutdatedPackage] = newOutdatedPackages.difference(from: outdatedPackageTracker.outdatedPackages)
-
-                                    outdatedPackageTracker.outdatedPackages = newOutdatedPackages
-
-                                    sendNotification(title: String(localized: "notification.new-outdated-packages-found.title"), subtitle: differentPackages.map(\.package.name).joined(separator: ", "))
-                                    
-                                    sendStandardUpdatesAvailableNotification = true
-                                }
-                            }
-                            catch
-                            {
-                                print("Something got fucked up")
-                            }
+                            await update()
                         }
 
-                        completion(NSBackgroundActivityScheduler.Result.finished)
+                        completion(.finished)
                     }
                 }
                 .onChange(of: outdatedPackageTracker.outdatedPackages.count)
@@ -346,6 +305,51 @@ struct CorkApp: App
         else if outdatedPackageNotificationType == .notification || outdatedPackageNotificationType == .none
         {
             NSApp.dockTile.badgeLabel = ""
+        }
+    }
+    
+    func update() async {
+        var updateResult = await shell(AppConstants.brewExecutablePath.absoluteString, ["update"])
+
+        print("Update result: \(updateResult)")
+
+        do
+        {
+            var newOutdatedPackages = try await getListOfUpgradeablePackages(brewData: brewData)
+
+            print("Outdated packages checker output: \(newOutdatedPackages)")
+            
+            defer
+            {
+                print("Will purge temporary update trackers")
+                
+                updateResult = .init(standardOutput: "", standardError: "")
+                newOutdatedPackages = .init()
+            }
+            
+            if newOutdatedPackages.count == outdatedPackageTracker.outdatedPackages.count
+            {
+                print("No new updates found")
+            }
+            else
+            {
+                print("New updates found")
+                
+                /// Set this to `true` so the normal notification doesn't get sent
+                sendStandardUpdatesAvailableNotification = false
+
+                let differentPackages: [OutdatedPackage] = newOutdatedPackages.difference(from: outdatedPackageTracker.outdatedPackages)
+
+                outdatedPackageTracker.outdatedPackages = newOutdatedPackages
+
+                sendNotification(title: String(localized: "notification.new-outdated-packages-found.title"), subtitle: differentPackages.map(\.package.name).joined(separator: ", "))
+                
+                sendStandardUpdatesAvailableNotification = true
+            }
+        }
+        catch
+        {
+            print("Something got fucked up")
         }
     }
 }
